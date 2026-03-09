@@ -1,0 +1,231 @@
+{
+  "skills": [
+    {
+      "id": "hp-convert",
+      "name": "Happy Paisa Converter",
+      "description": "Convert between Happy Paisa (HP) and Indian Rupees (INR)",
+      "category": "finance",
+      "endpoint": "http://localhost:8001/hp/convert",
+      "method": "POST",
+      "parameters": {
+        "amount": {
+          "type": "number",
+          "required": true,
+          "description": "Amount to convert"
+        },
+        "from": {
+          "type": "string",
+          "enum": ["HP", "INR"],
+          "required": true,
+          "description": "Source currency"
+        },
+        "to": {
+          "type": "string",
+          "enum": ["HP", "INR"],
+          "required": true,
+          "description": "Target currency"
+        }
+      },
+      "agent": "tansi",
+      "rate": 1000,
+      "examples": [
+        {"input": {"amount": 5, "from": "HP", "to": "INR"}, "output": {"amount": 5000, "currency": "INR"}},
+        {"input": {"amount": 10000, "from": "INR", "to": "HP"}, "output": {"amount": 10, "currency": "HP"}}
+      ]
+    },
+    {
+      "id": "hp-rate",
+      "name": "Happy Paisa Rate",
+      "description": "Get current Happy Paisa exchange rate",
+      "category": "finance",
+      "endpoint": "http://localhost:8001/hp/rate",
+      "method": "GET",
+      "agent": "tansi"
+    },
+    {
+      "id": "mr-happy-chat",
+      "name": "Mr. Happy AI Chat",
+      "description": "Chat with Mr. Happy, the Digital CEO of Axzora",
+      "category": "ai",
+      "endpoint": "http://localhost:8001/chat",
+      "method": "POST",
+      "parameters": {
+        "message": {
+          "type": "string",
+          "required": true,
+          "description": "Message to Mr. Happy"
+        }
+      },
+      "agent": "mr_happy",
+      "model": "llama3.2:3b"
+    },
+    {
+      "id": "ollama-generate",
+      "name": "Ollama Generate",
+      "description": "Generate text using Ollama with llama3.2:3b",
+      "category": "ai",
+      "endpoint": "http://localhost:11434/api/generate",
+      "method": "POST",
+      "parameters": {
+        "prompt": {
+          "type": "string",
+          "required": true,
+          "description": "Prompt for generation"
+        },
+        "model": {
+          "type": "string",
+          "default": "llama3.2:3b",
+          "description": "Ollama model to use"
+        },
+        "stream": {
+          "type": "boolean",
+          "default": false,
+          "description": "Stream response"
+        }
+      }
+    },
+    {
+      "id": "mesh-node-health",
+      "name": "Mesh Node Health",
+      "description": "Check Axzora Mesh Node status",
+      "category": "system",
+      "endpoint": "http://localhost:8888/health",
+      "method": "GET",
+      "agent": "kyra"
+    },
+    {
+      "id": "system-health",
+      "name": "Full System Health",
+      "description": "Check health of all Axzora services",
+      "category": "system",
+      "endpoint": "http://localhost:8001/health",
+      "method": "GET"
+    },
+    {
+      "id": "whatsapp-webhook",
+      "name": "WhatsApp Webhook",
+      "description": "Receive and process WhatsApp messages",
+      "category": "messaging",
+      "endpoint": "http://localhost:8001/webhook",
+      "method": "POST",
+      "verify_token": "axzora_whatsapp_verify_token_2026"
+    },
+    {
+      "id": "mission-control-tasks",
+      "name": "Mission Control Tasks",
+      "description": "Manage tasks in Mission Control",
+      "category": "productivity",
+      "endpoint": "http://localhost:8000/api/v1/tasks",
+      "method": "GET",
+      "auth": "Bearer token required"
+    },
+    {
+      "id": "mission-control-boards",
+      "name": "Mission Control Boards",
+      "description": "Manage boards in Mission Control",
+      "category": "productivity",
+      "endpoint": "http://localhost:8000/api/v1/boards",
+      "method": "GET",
+      "auth": "Bearer token required"
+    },
+    {
+      "id": "agent-device",
+      "name": "Agent Device Control",
+      "description": "Control iOS and Android devices for mobile automation, screenshots, and UI interactions",
+      "category": "automation",
+      "endpoint": "local",
+      "method": "CLI",
+      "parameters": {
+        "command": {
+          "type": "string",
+          "required": true,
+          "description": "Command to execute (open, snapshot, click, screenshot, etc.)"
+        },
+        "platform": {
+          "type": "string",
+          "enum": ["ios", "android"],
+          "description": "Target platform"
+        },
+        "app": {
+          "type": "string",
+          "description": "App name or bundle ID"
+        }
+      },
+      "agent": "mr_happy",
+      "examples": [
+        {"command": "agent-device open Settings --platform ios"},
+        {"command": "agent-device snapshot -i"},
+        {"command": "agent-device screenshot --out ./screen.png"}
+      ]
+    },
+    {
+      "id": "saas-mvp-launcher",
+      "name": "SaaS MVP Launcher",
+      "description": "Quickly launch SaaS MVP applications with Next.js, FastAPI, and full-stack templates",
+      "category": "development",
+      "endpoint": "local",
+      "method": "CLI",
+      "parameters": {
+        "command": {
+          "type": "string",
+          "required": true,
+          "description": "Command (create, list-templates, deploy)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Project name"
+        },
+        "template": {
+          "type": "string",
+          "enum": ["fullstack", "nextjs", "fastapi"],
+          "description": "Template to use"
+        },
+        "auth": {
+          "type": "string",
+          "enum": ["clerk", "local", "none"],
+          "description": "Authentication provider"
+        }
+      },
+      "agent": "mr_happy",
+      "examples": [
+        {"command": "saas-mvp-launcher create my-saas --template fullstack --auth clerk"},
+        {"command": "saas-mvp-launcher list-templates"},
+        {"command": "saas-mvp-launcher deploy ./my-app --target docker"}
+      ]
+    }
+  ],
+  "agents": {
+    "mr_happy": {
+      "name": "Mr. Happy",
+      "role": "Primary AI CEO",
+      "port": 8001,
+      "model": "llama3.2:3b",
+      "skills": ["mr-happy-chat", "ollama-generate", "system-health", "agent-device", "saas-mvp-launcher"]
+    },
+    "lucy": {
+      "name": "Lucy",
+      "role": "Research Agent",
+      "port": 8002,
+      "skills": ["ollama-generate"]
+    },
+    "tansi": {
+      "name": "Tansi",
+      "role": "Operations & Happy Paisa",
+      "port": 8003,
+      "skills": ["hp-convert", "hp-rate"]
+    },
+    "kyra": {
+      "name": "Kyra",
+      "role": "Analytics & Vision",
+      "port": 8004,
+      "skills": ["mesh-node-health", "ollama-generate"]
+    }
+  },
+  "configuration": {
+    "happy_paisa_rate": 1000,
+    "ollama_url": "http://localhost:11434",
+    "mesh_node_url": "http://localhost:8888",
+    "mission_control_url": "http://localhost:8000",
+    "whatsapp_bridge_url": "http://localhost:8001"
+  }
+}
