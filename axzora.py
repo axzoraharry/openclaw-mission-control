@@ -155,6 +155,47 @@ class AxzoraCLI:
             subprocess.run(["python", "skills/task_scheduler.py", "start"])
         else:
             subprocess.run(["python", "skills/task_scheduler.py", "list"])
+    
+    def junie(self, prompt: str = None):
+        """Launch Junie AI coding agent."""
+        print("\n🤖 JUNIE AI CODING AGENT\n")
+        print("Junie is JetBrains' LLM-agnostic coding agent.")
+        print("It can build, analyze, fix bugs, and review code.\n")
+        
+        if prompt:
+            # Run Junie with a specific prompt
+            subprocess.run(["junie", "--prompt", prompt])
+        else:
+            # Interactive mode
+            print("Starting interactive mode...\n")
+            subprocess.run(["junie"])
+    
+    def voice(self, mode: str = "interactive"):
+        """Launch Mr Happy voice assistant."""
+        if mode == "wake":
+            print("\n🎙️  Starting wake word listener...\n")
+            subprocess.run(["python", "axzora-ai/mr-happy/wake_word.py"])
+        elif mode == "ws":
+            print("\n🎙️  Starting voice WebSocket server...\n")
+            subprocess.run(["python", "axzora-ai/mr-happy/voice_integrated.py", "--ws"])
+        else:
+            print("\n🎙️  Starting voice assistant (interactive)...\n")
+            subprocess.run(["python", "axzora-ai/mr-happy/voice_integrated.py"])
+    
+    def ai(self, agent: str = "mr-happy"):
+        """Launch AI agents."""
+        agents = {
+            "mr-happy": "axzora-ai/mr-happy/brain.py",
+            "autonomous": "axzora-ai/mr-happy/autonomous_agent.py",
+            "wake": "axzora-ai/mr-happy/wake_word.py",
+        }
+        
+        if agent in agents:
+            print(f"\n🤖 Starting {agent}...\n")
+            subprocess.run(["python", agents[agent]])
+        else:
+            print(f"\n❌ Unknown agent: {agent}")
+            print(f"Available: {', '.join(agents.keys())}")
 
 
 def main():
@@ -197,6 +238,22 @@ def main():
     scheduler_parser.add_argument("action", nargs="?", default="list", 
                                   choices=["list", "start"], help="Action")
     
+    # Junie command
+    junie_parser = subparsers.add_parser("junie", help="Launch Junie AI coding agent")
+    junie_parser.add_argument("prompt", nargs="?", help="Task prompt for Junie")
+    
+    # Voice command
+    voice_parser = subparsers.add_parser("voice", help="Launch Mr Happy voice assistant")
+    voice_parser.add_argument("mode", nargs="?", default="interactive",
+                              choices=["interactive", "wake", "ws"],
+                              help="Voice mode: interactive, wake (wake word), ws (websocket)")
+    
+    # AI command
+    ai_parser = subparsers.add_parser("ai", help="Launch AI agents")
+    ai_parser.add_argument("agent", nargs="?", default="mr-happy",
+                           choices=["mr-happy", "autonomous", "wake"],
+                           help="Agent to launch")
+    
     args = parser.parse_args()
     
     if not args.command:
@@ -221,6 +278,12 @@ def main():
         cli.monitor()
     elif args.command == "scheduler":
         cli.scheduler(args.action)
+    elif args.command == "junie":
+        cli.junie(getattr(args, 'prompt', None))
+    elif args.command == "voice":
+        cli.voice(args.mode)
+    elif args.command == "ai":
+        cli.ai(args.agent)
 
 
 if __name__ == "__main__":
