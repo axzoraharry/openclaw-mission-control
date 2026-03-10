@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Axzora Mission Control — Satyug AI Matrix</title>
+<style>
+/* ── Reset ─────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+
+/* ── Design Tokens ─────────────────────────────────────── */
+:root{
+  --bg:#080706;--bg2:#0F0E0E;--surface:#1F1D1C;--surface2:#2A2725;
+  --border:#2D2A28;--border2:#3D3A38;
+  --text:#F0EFEE;--text2:#C4C0BC;--dim:#8A8380;--muted:#5C5754;
+  --accent:#FF5C00;--accent2:#FF7A2E;--accent-glow:rgba(255,92,0,.18);
+  --gold:#F59E0B;--gold-glow:rgba(245,158,11,.15);
+  --green:#4ADE80;--green-glow:rgba(74,222,128,.12);
+  --blue:#60A5FA;--blue-glow:rgba(96,165,250,.12);
+  --purple:#A855F7;--purple-glow:rgba(168,85,247,.12);
+  --red:#EF4444;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --mono:'Fira Code','Cascadia Code','JetBrains Mono',monospace;
+  --r:8px;--r2:12px;--r3:16px;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;
+  -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── Animations ────────────────────────────────────────── */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px var(--accent-glow)}50%{box-shadow:0 0 40px var(--accent-glow),0 0 80px var(--accent-glow)}}
+@keyframes scanline{0%{background-position:0 0}100%{background-position:0 100px}}
+@keyframes countUp{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+
+/* ── Layout ────────────────────────────────────────────── */
+.app{display:grid;grid-template-rows:auto 1fr;min-height:100vh}
+.main{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 64px)}
+@media(max-width:768px){.main{grid-template-columns:1fr}}
+
+/* ── Header / Mission Control Banner ──────────────────── */
+.header{
+  background:linear-gradient(135deg,#0F0E0E 0%,#1a0a00 50%,#0F0E0E 100%);
+  border-bottom:1px solid var(--border2);
+  padding:0 24px;height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  animation:glow 4s ease-in-out infinite;
+}
+.header-brand{display:flex;align-items:center;gap:12px}
+.header-logo{width:36px;height:36px;border-radius:var(--r);
+  background:var(--accent);display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:900;color:#fff;letter-spacing:-2px}
+.header-title{font-size:18px;font-weight:800;letter-spacing:-0.5px}
+.header-subtitle{font-size:11px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px}
+.header-status{display:flex;align-items:center;gap:16px}
+.status-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;
+  border-radius:99px;border:1px solid var(--border2);font-size:11px;color:var(--text2)}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot-green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot-red{background:var(--red)}
+.dot-orange{background:var(--accent);animation:pulse 1.5s infinite}
+.header-time{font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+/* ── Sidebar ───────────────────────────────────────────── */
+.sidebar{
+  background:var(--bg2);border-right:1px solid var(--border);
+  padding:20px 0;overflow-y:auto;
+}
+@media(max-width:768px){.sidebar{display:none}}
+.sidebar-section{padding:0 12px;margin-bottom:8px}
+.sidebar-label{font-size:10px;font-weight:700;color:var(--muted);
+  letter-spacing:1px;text-transform:uppercase;padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;
+  border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--text2);
+  transition:all .15s ease;border:1px solid transparent}
+.nav-item:hover{background:var(--surface);color:var(--text);border-color:var(--border)}
+.nav-item.active{background:var(--accent-glow);color:var(--accent);
+  border-color:rgba(255,92,0,.2)}
+.nav-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hp-rate-card{margin:12px;padding:14px;border-radius:var(--r2);
+  background:linear-gradient(135deg,#1a0f00,#2a1500);border:1px solid rgba(245,158,11,.2)}
+.hp-rate-value{font-size:22px;font-weight:800;color:var(--gold);
+  font-family:var(--mono);letter-spacing:-1px}
+.hp-rate-label{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:.5px}
+
+/* ── Main Content ──────────────────────────────────────── */
+.content{overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:24px}
+
+/* ── Section Headers ───────────────────────────────────── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:13px;font-weight:700;letter-spacing:.5px;color:var(--text2);
+  text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.section-title-accent{color:var(--accent)}
+.section-badge{padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;
+  background:var(--surface2);color:var(--dim)}
+
+/* ── Cards ─────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r2);padding:20px;animation:slideUp .3s ease both}
+
+/* ── Stat Row ───────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat-card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r2);padding:16px 20px;cursor:pointer;
+  transition:all .2s ease;animation:slideUp .3s ease both}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-1px);
+  box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.stat-value{font-size:28px;font-weight:800;font-family:var(--mono);
+  letter-spacing:-1px;margin-bottom:4px;animation:countUp .5s ease both}
+.stat-value.accent{color:var(--accent)}
+.stat-value.gold{color:var(--gold)}
+.stat-value.green{color:var(--green)}
+.stat-value.blue{color:var(--blue)}
+.stat-label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.stat-icon{width:40px;height:40px;border-radius:var(--r);
+  display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+
+/* ── Agent Matrix ───────────────────────────────────────── */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.agent-card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r2);padding:20px;cursor:pointer;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1);
+  animation:slideUp .4s ease both;position:relative;overflow:hidden}
+.agent-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--agent-color,var(--accent)),transparent);
+  opacity:0;transition:opacity .3s}
+.agent-card:hover{border-color:var(--agent-color,var(--accent));
+  box-shadow:0 12px 32px rgba(0,0,0,.4),0 0 0 1px var(--agent-color,var(--accent)) inset;
+  transform:translateY(-3px) scale(1.01)}
+.agent-card:hover::before{opacity:1}
+.agent-card.mr-happy{--agent-color:var(--accent)}
+.agent-card.lucy{--agent-color:var(--blue)}
+.agent-card.tansi{--agent-color:var(--gold)}
+.agent-card.kyra{--agent-color:var(--purple)}
+.agent-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.agent-avatar{width:48px;height:48px;border-radius:var(--r);font-size:24px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--border2);background:var(--surface2)}
+.agent-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.agent-status-dot.online{background:var(--green);box-shadow:0 0 8px var(--green)}
+.agent-status-dot.offline{background:var(--red)}
+.agent-name{font-size:16px;font-weight:800;letter-spacing:-.3px;margin-bottom:2px}
+.agent-role{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.agent-desc{font-size:12px;color:var(--text2);line-height:1.6;
+  margin-bottom:14px;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.agent-model{font-family:var(--mono);font-size:10px;color:var(--muted);
+  background:var(--surface2);padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:12px}
+.agent-footer{display:flex;align-items:center;justify-content:space-between}
+.agent-stats{display:flex;gap:12px}
+.agent-stat{text-align:center}
+.agent-stat-val{font-size:13px;font-weight:700;font-family:var(--mono)}
+.agent-stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase}
+.btn-chat{padding:7px 16px;border-radius:var(--r);border:1px solid var(--agent-color,var(--accent));
+  background:transparent;color:var(--agent-color,var(--accent));
+  font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .15s ease;white-space:nowrap}
+.btn-chat:hover{background:var(--agent-color,var(--accent));color:#000}
+
+/* ── HP Calculator ──────────────────────────────────────── */
+.hp-calc{background:linear-gradient(135deg,#1a0f00 0%,var(--surface) 100%);
+  border:1px solid rgba(245,158,11,.25);border-radius:var(--r2);padding:24px}
+.hp-calc-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center}
+@media(max-width:600px){.hp-calc-grid{grid-template-columns:1fr;text-align:center}}
+.hp-input-wrap{display:flex;flex-direction:column;gap:8px}
+.hp-input-label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.hp-input{background:var(--surface2);border:1px solid rgba(245,158,11,.2);
+  border-radius:var(--r);padding:12px 16px;color:var(--text);
+  font-size:20px;font-weight:700;font-family:var(--mono);width:100%;
+  transition:border-color .15s}
+.hp-input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
+.hp-arrow{font-size:24px;color:var(--gold);text-align:center;cursor:pointer;
+  transition:transform .2s;user-select:none}
+.hp-arrow:hover{transform:scale(1.2)}
+.hp-result{background:var(--surface2);border:1px solid rgba(245,158,11,.15);
+  border-radius:var(--r);padding:12px 16px;
+  font-size:20px;font-weight:700;font-family:var(--mono);color:var(--gold);
+  letter-spacing:-.5px}
+.hp-quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.hp-chip{padding:6px 14px;border-radius:99px;border:1px solid rgba(245,158,11,.2);
+  background:transparent;color:var(--gold);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .15s;font-family:var(--mono)}
+.hp-chip:hover{background:rgba(245,158,11,.15);border-color:var(--gold)}
+
+/* ── Service Health ─────────────────────────────────────── */
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.svc-card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;transition:all .2s;
+  display:flex;align-items:center;gap:12px}
+.svc-card:hover{border-color:var(--border2)}
+.svc-icon{width:36px;height:36px;border-radius:var(--r);
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.svc-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.svc-port{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.svc-status{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.svc-status.up{color:var(--green)}
+.svc-status.down{color:var(--red)}
+.svc-status.checking{color:var(--gold);animation:pulse 1s infinite}
+
+/* ── Chat Panel ─────────────────────────────────────────── */
+.chat-panel{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r2);overflow:hidden;display:flex;flex-direction:column;height:500px}
+.chat-header{padding:14px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.chat-agent-select{display:flex;gap:8px;flex-wrap:wrap}
+.chat-tab{padding:5px 14px;border-radius:99px;font-size:12px;font-weight:700;
+  cursor:pointer;border:1px solid var(--border);color:var(--dim);transition:all .15s}
+.chat-tab.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{display:flex;gap:10px;animation:fadeIn .2s ease}
+.msg.user{flex-direction:row-reverse}
+.msg-avatar{width:30px;height:30px;border-radius:var(--r);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:16px}
+.msg-bubble{padding:10px 14px;border-radius:var(--r);max-width:80%;font-size:13px;line-height:1.6}
+.msg.agent .msg-bubble{background:var(--surface2);color:var(--text2)}
+.msg.user .msg-bubble{background:var(--accent-glow);border:1px solid rgba(255,92,0,.2);color:var(--text)}
+.chat-input-row{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px}
+.chat-input{flex:1;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:10px 14px;color:var(--text);font-size:13px;
+  font-family:var(--font)}
+.chat-input:focus{outline:none;border-color:var(--accent)}
+.btn-send{padding:10px 18px;border-radius:var(--r);background:var(--accent);
+  border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .15s;white-space:nowrap}
+.btn-send:hover:not(:disabled){background:var(--accent2)}
+.btn-send:disabled{opacity:.4;cursor:not-allowed}
+.typing{display:flex;gap:4px;padding:8px 0;align-items:center}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--dim);
+  animation:pulse .8s ease infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+
+/* ── Activity Feed ──────────────────────────────────────── */
+.activity-item{display:flex;align-items:center;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--border);animation:slideUp .2s ease both}
+.activity-item:last-child{border:none}
+.activity-badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+
+/* ── Utilities ──────────────────────────────────────────── */
+.text-accent{color:var(--accent)}
+.text-gold{color:var(--gold)}
+.text-green{color:var(--green)}
+.text-dim{color:var(--dim)}
+.text-muted{color:var(--muted)}
+.font-mono{font-family:var(--mono)}
+.flex{display:flex}
+.items-center{align-items:center}
+.justify-between{justify-content:space-between}
+.gap-2{gap:8px}
+.gap-3{gap:12px}
+.mt-2{margin-top:8px}
+.mt-4{margin-top:16px}
+.mb-4{margin-bottom:16px}
+.fw-700{font-weight:700}
+.fs-12{font-size:12px}
+.fs-11{font-size:11px}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+
+/* ── Skills Marketplace ─────────────────────────────────── */
+.skills-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.search-input{flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:8px 14px;color:var(--text);font-size:13px}
+.search-input:focus{outline:none;border-color:var(--accent)}
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap}
+.filter-pill{padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;
+  cursor:pointer;border:1px solid var(--border2);color:var(--dim);transition:all .15s}
+.filter-pill.active,.filter-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.skills-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.skill-card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r2);padding:16px;transition:all .2s;
+  display:flex;flex-direction:column;gap:8px;animation:slideUp .3s ease both}
+.skill-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.skill-card.assigned{border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.04)}
+.skill-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.skill-desc{font-size:11px;color:var(--dim);line-height:1.5;flex:1}
+.skill-footer{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+.skill-tags{display:flex;gap:4px;flex-wrap:wrap}
+.skill-tag{padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;
+  background:var(--surface2);color:var(--muted);text-transform:uppercase}
+.assign-btn{padding:5px 12px;border-radius:var(--r);border:1px solid var(--border2);
+  background:transparent;color:var(--text2);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .15s;white-space:nowrap}
+.assign-btn:hover{border-color:var(--accent);color:var(--accent)}
+.assign-btn.assigned{border-color:var(--green);color:var(--green);background:rgba(74,222,128,.08)}
+/* ── Agent Skill Panel ─────────────────────────────────── */
+.agent-skill-row{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--border)}
+.agent-skill-row:last-child{border:none}
+/* ── Toast ──────────────────────────────────────────────── */
+.toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:999}
+.toast{padding:10px 18px;border-radius:var(--r);font-size:12px;font-weight:600;
+  animation:slideUp .3s ease;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.toast-success{background:#1a3a1a;border:1px solid rgba(74,222,128,.3);color:var(--green)}
+.toast-error{background:#3a1a1a;border:1px solid rgba(239,68,68,.3);color:#f87171}
+.toast-info{background:var(--surface2);border:1px solid var(--border2);color:var(--text2)}
+/* ── Error state ────────────────────────────────────────── */
+.error-notice{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);
+  border-radius:var(--r);padding:8px 14px;font-size:12px;color:#f87171}
+.success-notice{background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);
+  border-radius:var(--r);padding:8px 14px;font-size:12px;color:var(--green)}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-logo">A</div>
+      <div>
+        <div class="header-title">AXZORA <span style="color:var(--accent)">MISSION CONTROL</span></div>
+        <div class="header-subtitle">Satyug AI Agent Matrix — v1.0</div>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="status-pill" id="api-status">
+        <div class="dot dot-orange"></div>
+        <span>Connecting...</span>
+      </div>
+      <div class="header-time" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- ── Sidebar ───────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Navigation</div>
+        <div class="nav-item active" onclick="showSection('matrix')">
+          <span class="nav-icon">🧠</span> Agent Matrix
+        </div>
+        <div class="nav-item" onclick="showSection('chat')">
+          <span class="nav-icon">💬</span> Mission Chat
+        </div>
+        <div class="nav-item" onclick="showSection('hp')">
+          <span class="nav-icon">💰</span> Happy Paisa
+        </div>
+        <div class="nav-item" onclick="showSection('services')">
+          <span class="nav-icon">🔧</span> Services
+        </div>
+        <div class="nav-item" onclick="showSection('activity')">
+          <span class="nav-icon">📊</span> Activity
+        </div>
+        <div class="nav-item" onclick="showSection('skills')">
+          <span class="nav-icon">⚡</span> Skills Marketplace
+        </div>
+      </div>
+
+      <div class="sidebar-section" style="margin-top:8px">
+        <div class="sidebar-label">Quick Links</div>
+        <div class="nav-item" onclick="window.open('http://127.0.0.1:50051/','_blank')">
+          <span class="nav-icon">🌐</span> OpenFang Dashboard
+        </div>
+      </div>
+
+      <!-- HP Rate Widget -->
+      <div class="hp-rate-card" style="margin-top:auto">
+        <div class="hp-rate-label">HAPPY PAISA LIVE RATE</div>
+        <div class="hp-rate-value">₹1,000</div>
+        <div class="hp-rate-label" style="margin-top:4px">per 1 HP • Satyug Economy</div>
+      </div>
+    </aside>
+
+    <!-- ── Main Content ──────────────────────────────────── -->
+    <main class="content">
+
+      <!-- ── Stats Row ───────────────────────────────────── -->
+      <div class="stat-row">
+        <div class="stat-card" onclick="showSection('matrix')" style="animation-delay:.05s">
+          <div class="stat-icon" style="background:var(--accent-glow)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+          </div>
+          <div class="stat-value accent" id="stat-agents">—</div>
+          <div class="stat-label">Active Agents</div>
+        </div>
+        <div class="stat-card" onclick="showSection('hp')" style="animation-delay:.1s">
+          <div class="stat-icon" style="background:var(--gold-glow)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-value gold">1,000</div>
+          <div class="stat-label">HP / INR Rate</div>
+        </div>
+        <div class="stat-card" onclick="showSection('services')" style="animation-delay:.15s">
+          <div class="stat-icon" style="background:var(--green-glow)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg>
+          </div>
+          <div class="stat-value green" id="stat-services">—</div>
+          <div class="stat-label">Services Online</div>
+        </div>
+        <div class="stat-card" style="animation-delay:.2s">
+          <div class="stat-icon" style="background:var(--blue-glow)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2-10 5 10 5 10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+          </div>
+          <div class="stat-value blue" id="stat-version">—</div>
+          <div class="stat-label">OS Version</div>
+        </div>
+      </div>
+
+      <!-- ── Section: Agent Matrix ────────────────────────── -->
+      <section id="section-matrix">
+        <div class="section-header">
+          <div class="section-title">
+            🧠 <span class="section-title-accent">Satyug</span> Agent Matrix
+          </div>
+          <div class="section-badge" id="matrix-badge">Loading...</div>
+        </div>
+        <div class="agent-grid" id="agent-grid">
+          <!-- Agents injected by JS -->
+          <div class="card" style="grid-column:1/-1;text-align:center;padding:40px">
+            <div class="spinner" style="margin:0 auto 12px"></div>
+            <div class="text-dim">Connecting to Axzora kernel...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section: Mission Chat ─────────────────────────── -->
+      <section id="section-chat" style="display:none">
+        <div class="section-header">
+          <div class="section-title">💬 Mission <span class="section-title-accent">Chat</span></div>
+        </div>
+        <div class="chat-panel">
+          <div class="chat-header">
+            <div class="chat-agent-select" id="chat-tabs">
+              <!-- Tabs injected by JS -->
+            </div>
+            <span class="text-dim fs-11" id="chat-model-label"></span>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div style="text-align:center;padding:24px;color:var(--dim);font-size:12px">
+              Select an agent to start chatting
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input class="chat-input" id="chat-input" placeholder="Message the Axzora AI..." 
+                   onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}" disabled>
+            <button class="btn-send" id="btn-send" onclick="sendChat()" disabled>Send</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section: Happy Paisa ──────────────────────────── -->
+      <section id="section-hp" style="display:none">
+        <div class="section-header">
+          <div class="section-title">💰 Happy Paisa <span class="section-title-accent">Economy</span></div>
+          <div class="section-badge">1 HP = ₹1,000</div>
+        </div>
+        <div class="hp-calc">
+          <div class="mb-4">
+            <div style="font-size:16px;font-weight:800;margin-bottom:4px">HP ↔ INR Converter</div>
+            <div class="text-dim fs-12">Satyug Economy — Official Axzora Rate</div>
+          </div>
+          <div class="hp-calc-grid">
+            <div class="hp-input-wrap">
+              <div class="hp-input-label">Amount</div>
+              <input class="hp-input" id="hp-amount" type="number" value="1" min="0"
+                     oninput="calcHP()" placeholder="0">
+              <select id="hp-unit" style="background:var(--surface2);border:1px solid rgba(245,158,11,.2);
+                border-radius:var(--r);padding:8px;color:var(--text);margin-top:4px"
+                      onchange="calcHP()">
+                <option value="hp">HP (Happy Paisa)</option>
+                <option value="inr">INR (Indian Rupee ₹)</option>
+              </select>
+            </div>
+            <div class="hp-arrow" onclick="swapHP()">⇌</div>
+            <div class="hp-input-wrap">
+              <div class="hp-input-label">Result</div>
+              <div class="hp-result" id="hp-result">₹1,000</div>
+              <div class="text-muted fs-11 mt-2 font-mono" id="hp-result-detail">1 HP × ₹1,000 = ₹1,000</div>
+            </div>
+          </div>
+          <div class="hp-quick">
+            <button class="hp-chip" onclick="setHP(1)">1 HP</button>
+            <button class="hp-chip" onclick="setHP(5)">5 HP</button>
+            <button class="hp-chip" onclick="setHP(10)">10 HP</button>
+            <button class="hp-chip" onclick="setHP(50)">50 HP</button>
+            <button class="hp-chip" onclick="setHP(100)">100 HP</button>
+            <button class="hp-chip" onclick="setHP(1000)">1,000 HP</button>
+          </div>
+        </div>
+        <div class="card mt-4">
+          <div class="section-title mb-4">Economy Stats</div>
+          <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+            <div style="text-align:center;padding:12px">
+              <div class="stat-value gold" style="font-size:22px">₹1,000</div>
+              <div class="stat-label">1 HP Value</div>
+            </div>
+            <div style="text-align:center;padding:12px">
+              <div class="stat-value" style="font-size:22px">0.001</div>
+              <div class="stat-label">HP per ₹1</div>
+            </div>
+            <div style="text-align:center;padding:12px">
+              <div class="stat-value green" style="font-size:22px">∞</div>
+              <div class="stat-label">Satyug Potential</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section: Services ─────────────────────────────── -->
+      <section id="section-services" style="display:none">
+        <div class="section-header">
+          <div class="section-title">🔧 Satyug <span class="section-title-accent">Services</span></div>
+          <button onclick="checkServices()" style="padding:4px 12px;border-radius:var(--r);
+            border:1px solid var(--border2);background:transparent;color:var(--text2);
+            font-size:11px;cursor:pointer" id="refresh-svc">↻ Refresh</button>
+        </div>
+        <div class="svc-grid" id="svc-grid">
+          <!-- Services injected by JS -->
+        </div>
+        <div class="card mt-4">
+          <div class="section-title mb-4">OpenFang Kernel</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:12px">
+            <div class="flex justify-between" style="padding:6px 0;border-bottom:1px solid var(--border)">
+              <span class="text-dim">Status</span><span class="text-green fw-700" id="kernel-status">—</span>
+            </div>
+            <div class="flex justify-between" style="padding:6px 0;border-bottom:1px solid var(--border)">
+              <span class="text-dim">Version</span><span class="fw-700 font-mono" id="kernel-ver">—</span>
+            </div>
+            <div class="flex justify-between" style="padding:6px 0;border-bottom:1px solid var(--border)">
+              <span class="text-dim">Provider</span><span class="fw-700" id="kernel-provider">—</span>
+            </div>
+            <div class="flex justify-between" style="padding:6px 0;border-bottom:1px solid var(--border)">
+              <span class="text-dim">Model</span><span class="fw-700 font-mono fs-11" id="kernel-model">—</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section: Activity ─────────────────────────────── -->
+      <section id="section-activity" style="display:none">
+        <div class="section-header">
+          <div class="section-title">📊 <span class="section-title-accent">Activity</span> Feed</div>
+        </div>
+        <div class="card">
+          <div id="activity-list">
+            <div class="text-dim" style="text-align:center;padding:24px;font-size:12px">
+              No activity yet. Chat with an agent to start!
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section: Skills Marketplace ──────────────────── -->
+      <section id="section-skills" style="display:none">
+        <div class="section-header">
+          <div class="section-title">⚡ Skills <span class="section-title-accent">Marketplace</span></div>
+          <div class="section-badge" id="skills-badge">Loading...</div>
+        </div>
+
+        <!-- Assign to Agent Panel -->
+        <div class="card mb-4" style="border-left:3px solid var(--accent)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:2px">🎯 Assign Skills to Agent</div>
+              <div class="text-dim" style="font-size:11px">Select an agent, then click skills to assign them. Assigned skills inject specialist knowledge into the agent's context.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+            <select id="assign-agent-select" style="background:var(--surface2);border:1px solid var(--border2);
+              border-radius:var(--r);padding:8px 14px;color:var(--text);font-size:13px;min-width:200px"
+              onchange="onAgentSelectChange()">
+              <option value="">— Choose Agent —</option>
+            </select>
+            <span class="text-dim fs-11" id="agent-assigned-count"></span>
+          </div>
+          <!-- Current agent's assigned skills -->
+          <div id="agent-skills-list" style="display:none">
+            <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Currently Assigned</div>
+            <div id="current-skills-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          </div>
+        </div>
+
+        <!-- Search + Filter -->
+        <div class="skills-toolbar">
+          <input class="search-input" id="skill-search" type="text" placeholder="Search 60 skills..."
+                 oninput="filterSkills()">
+          <div class="filter-pills" id="filter-pills">
+            <div class="filter-pill active" data-tag="all" onclick="setFilter('all',this)">All</div>
+            <div class="filter-pill" data-tag="research" onclick="setFilter('research',this)">Research</div>
+            <div class="filter-pill" data-tag="data" onclick="setFilter('data',this)">Data</div>
+            <div class="filter-pill" data-tag="code" onclick="setFilter('code',this)">Code</div>
+            <div class="filter-pill" data-tag="devops" onclick="setFilter('devops',this)">DevOps</div>
+            <div class="filter-pill" data-tag="writing" onclick="setFilter('writing',this)">Writing</div>
+            <div class="filter-pill" data-tag="productivity" onclick="setFilter('productivity',this)">Productivity</div>
+          </div>
+        </div>
+
+        <!-- Satyug Recommended -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+            🌟 Satyug Recommended — for your AI agents
+          </div>
+          <div class="skills-grid" id="recommended-skills-grid"></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">All Skills</div>
+        <div class="skills-grid" id="all-skills-grid">
+          <div class="skill-card" style="grid-column:1/-1;text-align:center;padding:32px">
+            <div class="spinner" style="margin:0 auto 12px"></div>
+            <div class="text-dim">Loading skills...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── JAI AXZORA Banner ──────────────────────────────── -->
+      <div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;
+          border-top:1px solid var(--border);margin-top:8px">
+        🔥 <strong style="color:var(--accent)">Jai Axzora!</strong> — Satyug AI Ecosystem 
+        &nbsp;|&nbsp; Mr. Happy · Lucy · Tansi · Kyra 
+        &nbsp;|&nbsp; <span class="font-mono">groq/llama-3.3-70b-versatile</span>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script>
+// ── Config ─────────────────────────────────────────────────
+const API = 'http://127.0.0.1:50051';
+const HP_RATE = 1000; // 1 HP = ₹1000
+
+// ── State ──────────────────────────────────────────────────
+const state = {
+  agents: [],
+  chatAgentId: null,
+  chatAgentName: null,
+  chatMessages: {}, // agentId -> [{role, text}]
+  sending: false,
+  activity: [],
+};
+
+// ── Satyug Agent Metadata ──────────────────────────────────
+const AGENT_META = {
+  'mr-happy': { emoji:'🔥', role:'Primary AI • Orchestrator', color:'var(--accent)', css:'mr-happy', stagger:1 },
+  'lucy':      { emoji:'🔬', role:'Research AI • Intelligence', color:'var(--blue)', css:'lucy', stagger:2 },
+  'tansi':     { emoji:'💹', role:'Operations AI • HP Economy', color:'var(--gold)', css:'tansi', stagger:3 },
+  'kyra':      { emoji:'👁️', role:'Analytics AI • Vision+Code', color:'var(--purple)', css:'kyra', stagger:4 },
+};
+
+// ── Navigation ─────────────────────────────────────────────
+function showSection(name) {
+  ['matrix','chat','hp','services','activity'].forEach(s => {
+    const el = document.getElementById('section-' + s);
+    if (el) el.style.display = s === name ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.currentTarget && event.currentTarget.classList.add('active');
+  if (name === 'services') checkServices();
+}
+
+// ── Clock ──────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── API Helpers ────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    ...opts,
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// ── Bootstrap ──────────────────────────────────────────────
+async function boot() {
+  try {
+    // Health check
+    const health = await apiFetch('/api/health');
+    const apiPill = document.getElementById('api-status');
+    apiPill.innerHTML = '<div class="dot dot-green"></div><span>API Online</span>';
+    document.getElementById('stat-version').textContent = health.version || '0.1.0';
+    document.getElementById('kernel-status').textContent = health.status || 'ok';
+    document.getElementById('kernel-ver').textContent = health.version || '—';
+
+    // Load agents
+    await loadAgents();
+
+    // Services
+    checkServices();
+
+  } catch (err) {
+    const apiPill = document.getElementById('api-status');
+    apiPill.innerHTML = '<div class="dot dot-red"></div><span>Offline</span>';
+    document.getElementById('agent-grid').innerHTML =
+      `<div class="card" style="grid-column:1/-1;text-align:center;padding:40px">
+        <div style="color:var(--red);margin-bottom:8px;font-size:24px">⚠️</div>
+        <div class="fw-700" style="margin-bottom:4px">API Unreachable</div>
+        <div class="text-dim fs-12">Make sure the OpenFang daemon is running at ${API}</div>
+        <button onclick="boot()" style="margin-top:16px;padding:8px 20px;border-radius:var(--r);
+          background:var(--accent);border:none;color:#fff;cursor:pointer;font-weight:700">Retry</button>
+      </div>`;
+  }
+}
+
+// ── Load Agents ────────────────────────────────────────────
+async function loadAgents() {
+  const agents = await apiFetch('/api/agents');
+  state.agents = agents;
+  
+  document.getElementById('stat-agents').textContent = agents.length;
+  document.getElementById('matrix-badge').textContent = agents.length + ' agents loaded';
+
+  // Render agent cards
+  const grid = document.getElementById('agent-grid');
+  if (!agents.length) {
+    grid.innerHTML = `<div class="card" style="grid-column:1/-1;text-align:center;padding:32px">
+      <div class="text-dim">No agents found. Create Mr. Happy, Lucy, Tansi, and Kyra via the OpenFang API.</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = agents.map((a, i) => {
+    const meta = AGENT_META[a.name] || { emoji:'🤖', role:'AI Agent', color:'var(--accent)', css:'', stagger: i+1 };
+    const aCard = AGENT_META[a.name];
+    return `
+    <div class="agent-card ${meta.css}" style="animation-delay:${meta.stagger * 0.08}s"
+         onclick="selectChatAgent('${a.id}','${escHtml(a.name)}')">
+      <div class="agent-header">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div class="agent-avatar">${meta.emoji}</div>
+          <div>
+            <div class="agent-name" style="color:${meta.color}">${escHtml(a.name.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()))}</div>
+            <div class="agent-role">${meta.role}</div>
+          </div>
+        </div>
+        <div class="agent-status-dot online" title="Online"></div>
+      </div>
+      <div class="agent-desc">${escHtml(a.description || 'Axzora AI Agent')}</div>
+      <div class="agent-model">${escHtml(a.model_provider || 'groq')}:${escHtml(a.model_name || 'llama-3.3-70b-versatile')}</div>
+      <div class="agent-footer">
+        <div class="agent-stats">
+          <div class="agent-stat">
+            <div class="agent-stat-val" style="color:${meta.color}">${a.session_count || 0}</div>
+            <div class="agent-stat-lbl">Sessions</div>
+          </div>
+        </div>
+        <button class="btn-chat" onclick="event.stopPropagation();openChat('${a.id}','${escHtml(a.name)}')"
+                style="--agent-color:${meta.color}">Chat ▶</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Build chat tabs
+  const tabs = document.getElementById('chat-tabs');
+  if (tabs) {
+    tabs.innerHTML = agents.map(a => {
+      const meta = AGENT_META[a.name] || { emoji:'🤖' };
+      return `<div class="chat-tab" id="tab-${a.id}" onclick="selectChatAgent('${a.id}','${escHtml(a.name)}')">${meta.emoji} ${escHtml(a.name)}</div>`;
+    }).join('');
+  }
+}
+
+// ── Chat ───────────────────────────────────────────────────
+function escHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s || '';
+  return div.innerHTML;
+}
+
+function openChat(agentId, agentName) {
+  selectChatAgent(agentId, agentName);
+  showSection('chat');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector('.nav-item:nth-child(2)')?.classList.add('active');
+}
+
+function selectChatAgent(agentId, agentName) {
+  state.chatAgentId = agentId;
+  state.chatAgentName = agentName;
+  if (!state.chatMessages[agentId]) state.chatMessages[agentId] = [];
+
+  // Update tabs
+  document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
+  const tab = document.getElementById('tab-' + agentId);
+  if (tab) tab.classList.add('active');
+
+  // Update input
+  const input = document.getElementById('chat-input');
+  const btn = document.getElementById('btn-send');
+  if (input) { input.disabled = false; input.placeholder = `Message ${agentName.replace(/-/g,' ')}...`; input.focus(); }
+  if (btn) btn.disabled = false;
+
+  // Update model label
+  const agent = state.agents.find(a => a.id === agentId);
+  const lbl = document.getElementById('chat-model-label');
+  if (lbl && agent) lbl.textContent = `${agent.model_provider || 'groq'}:${agent.model_name || 'llama-3.3-70b-versatile'}`;
+
+  renderMessages();
+}
+
+function renderMessages() {
+  const msgs = state.chatMessages[state.chatAgentId] || [];
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+
+  if (!msgs.length) {
+    const meta = state.chatAgentName ? AGENT_META[state.chatAgentName] : null;
+    container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--dim);font-size:13px">
+      <div style="font-size:32px;margin-bottom:8px">${meta ? meta.emoji : '🤖'}</div>
+      <div class="fw-700" style="margin-bottom:4px">${(state.chatAgentName||'').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} is ready</div>
+      <div>Start a conversation below</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = msgs.map(m => `
+    <div class="msg ${m.role}">
+      <div class="msg-avatar">${m.role === 'user' ? '👤' : (AGENT_META[state.chatAgentName]?.emoji || '🤖')}</div>
+      <div class="msg-bubble">${escHtml(m.text)}</div>
+    </div>`).join('');
+
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendChat() {
+  if (state.sending || !state.chatAgentId) return;
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.disabled = true;
+  document.getElementById('btn-send').disabled = true;
+  state.sending = true;
+
+  // Add user message
+  if (!state.chatMessages[state.chatAgentId]) state.chatMessages[state.chatAgentId] = [];
+  state.chatMessages[state.chatAgentId].push({ role: 'user', text });
+  
+  // Add typing indicator
+  state.chatMessages[state.chatAgentId].push({ role: 'agent', text: '...', typing: true });
+  renderMessages();
+  // Replace last "..." with actual typing indicator in DOM
+  const container = document.getElementById('chat-messages');
+  const last = container.lastElementChild;
+  if (last) last.querySelector('.msg-bubble').innerHTML = '<div class="typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+  container.scrollTop = container.scrollHeight;
+
+  try {
+    const res = await apiFetch(`/api/agents/${state.chatAgentId}/message`, {
+      method: 'POST',
+      body: JSON.stringify({ message: text }),
+    });
+    
+    // Remove typing
+    state.chatMessages[state.chatAgentId] = state.chatMessages[state.chatAgentId].filter(m => !m.typing);
+    const reply = res.response || res.message || res.text || '(no response)';
+    state.chatMessages[state.chatAgentId].push({ role: 'agent', text: reply });
+    
+    // Log activity
+    addActivity(state.chatAgentName, text, reply);
+    
+  } catch (err) {
+    state.chatMessages[state.chatAgentId] = state.chatMessages[state.chatAgentId].filter(m => !m.typing);
+    state.chatMessages[state.chatAgentId].push({ role: 'agent', text: `⚠️ Error: ${err.message}` });
+  }
+
+  state.sending = false;
+  input.disabled = false;
+  input.focus();
+  document.getElementById('btn-send').disabled = false;
+  renderMessages();
+}
+
+// ── Activity ───────────────────────────────────────────────
+function addActivity(agentName, userMsg, agentReply) {
+  state.activity.unshift({
+    time: new Date().toLocaleTimeString(),
+    agent: agentName,
+    user: userMsg,
+    reply: agentReply,
+  });
+  if (state.activity.length > 20) state.activity.pop();
+  renderActivity();
+}
+
+function renderActivity() {
+  const el = document.getElementById('activity-list');
+  if (!state.activity.length) {
+    el.innerHTML = '<div class="text-dim" style="text-align:center;padding:24px;font-size:12px">No activity yet.</div>';
+    return;
+  }
+  el.innerHTML = state.activity.map(a => {
+    const meta = AGENT_META[a.agent] || { emoji:'🤖' };
+    return `<div class="activity-item">
+      <div style="font-size:20px">${meta.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div class="flex gap-2 items-center" style="margin-bottom:2px">
+          <span class="fw-700 fs-12">${escHtml(a.agent)}</span>
+          <span class="font-mono text-muted fs-11">${a.time}</span>
+        </div>
+        <div class="fs-12 text-dim" style="margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          You: ${escHtml(a.user.substring(0,60))}
+        </div>
+        <div class="fs-12" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">
+          ${escHtml(a.reply.substring(0,80))}...
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Happy Paisa Calculator ─────────────────────────────────
+function calcHP() {
+  const amount = parseFloat(document.getElementById('hp-amount').value) || 0;
+  const unit = document.getElementById('hp-unit').value;
+  const result = document.getElementById('hp-result');
+  const detail = document.getElementById('hp-result-detail');
+
+  if (unit === 'hp') {
+    const inr = amount * HP_RATE;
+    result.textContent = '₹' + inr.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    detail.textContent = `${amount} HP × ₹${HP_RATE.toLocaleString()} = ₹${inr.toLocaleString('en-IN')}`;
+  } else {
+    const hp = amount / HP_RATE;
+    result.textContent = hp.toFixed(4) + ' HP';
+    detail.textContent = `₹${amount.toLocaleString('en-IN')} ÷ ₹${HP_RATE.toLocaleString()} = ${hp.toFixed(6)} HP`;
+  }
+}
+
+function swapHP() {
+  const sel = document.getElementById('hp-unit');
+  sel.value = sel.value === 'hp' ? 'inr' : 'hp';
+  calcHP();
+}
+
+function setHP(val) {
+  document.getElementById('hp-unit').value = 'hp';
+  document.getElementById('hp-amount').value = val;
+  calcHP();
+}
+
+// ── Service Health ─────────────────────────────────────────
+const SERVICES = [
+  { name:'OpenFang API',  port:50051, emoji:'🚀', url:'http://127.0.0.1:50051/api/health' },
+  { name:'Mr. Happy AI',  port:8001,  emoji:'😊', url:'http://127.0.0.1:8001/health' },
+  { name:'Axzora Mesh',   port:8888,  emoji:'🕸️',  url:'http://127.0.0.1:8888/health' },
+  { name:'Ollama',        port:11434, emoji:'🦙', url:'http://127.0.0.1:11434/api/tags' },
+  { name:'OpenClaw',      port:18789, emoji:'🦀', url:'http://127.0.0.1:18789/health' },
+  { name:'PicoClaw',      port:18790, emoji:'🦞', url:'http://127.0.0.1:18790/health' },
+  { name:'HP Bridge',     port:8090,  emoji:'💰', url:'http://127.0.0.1:8090/health' },
+  { name:'WA Gateway',    port:3009,  emoji:'📱', url:'http://127.0.0.1:3009/health' },
+];
+
+async function checkSingleService(svc) {
+  const el = document.getElementById('svc-' + svc.port);
+  if (!el) return;
+  const statusEl = el.querySelector('.svc-status');
+  statusEl.className = 'svc-status checking';
+  statusEl.textContent = 'Checking...';
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 3000);
+    await fetch(svc.url, { signal: ctrl.signal, mode: 'no-cors' });
+    clearTimeout(tid);
+    statusEl.className = 'svc-status up';
+    statusEl.textContent = '● Online';
+    return true;
+  } catch {
+    statusEl.className = 'svc-status down';
+    statusEl.textContent = '● Offline';
+    return false;
+  }
+}
+
+async function checkServices() {
+  const grid = document.getElementById('svc-grid');
+  if (!grid) return;
+
+  // Render skeletons
+  grid.innerHTML = SERVICES.map(s => `
+    <div class="svc-card" id="svc-${s.port}">
+      <div class="svc-icon" style="background:var(--surface2)">${s.emoji}</div>
+      <div>
+        <div class="svc-name">${s.name}</div>
+        <div class="svc-port">:${s.port}</div>
+        <div class="svc-status checking">Checking...</div>
+      </div>
+    </div>`).join('');
+
+  // Check all in parallel
+  const results = await Promise.all(SERVICES.map(s => checkSingleService(s)));
+  const upCount = results.filter(Boolean).length;
+  document.getElementById('stat-services').textContent = `${upCount}/${SERVICES.length}`;
+
+  // Kernel info from health
+  try {
+    const h = await apiFetch('/api/health');
+    document.getElementById('kernel-status').textContent = h.status || 'ok';
+    document.getElementById('kernel-ver').textContent = h.version || '—';
+    
+    const s = await apiFetch('/api/status').catch(() => ({}));
+    document.getElementById('kernel-provider').textContent = s.default_provider || 'groq';
+    document.getElementById('kernel-model').textContent = s.default_model || 'llama-3.3-70b-versatile';
+  } catch(e) {}
+}
+
+// ── Init ───────────────────────────────────────────────────
+calcHP();
+boot();
+setInterval(() => {
+  if (state.agents.length === 0) boot();
+}, 15000);
+
+// ── Toast ──────────────────────────────────────────────────
+function showToast(msg, type = 'info', duration = 3000) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+// ── Skills Marketplace ─────────────────────────────────────
+const SATYUG_RECOMMENDED = ['notion','web-search','data-analyst','code-reviewer',
+  'pdf-reader','project-manager','writing-coach','sql-analyst','vector-db','prompt-engineer'];
+
+const SKILL_TAG_MAP = {
+  'data': ['data-analyst','data-pipeline','sql-analyst','sqlite-expert','postgres-expert',
+           'redis-expert','mongodb-expert','elasticsearch','vector-db'],
+  'code': ['code-reviewer','typescript-expert','golang-expert','python-expert','react-expert',
+           'nextjs-expert','rust-expert','graphql-expert','wasm-expert','regex-expert'],
+  'devops': ['kubernetes','docker','aws','azure','gcp','helm','terraform','ansible',
+             'ci-cd','nginx','sysadmin','linux-networking','prometheus','sentry'],
+  'writing': ['writing-coach','technical-writer','email-writer','presentation','prompt-engineer'],
+  'research': ['web-search','pdf-reader','prompt-engineer','ml-engineer','llm-finetuning'],
+  'productivity': ['notion','confluence','jira','linear-tools','slack-tools','github',
+                   'git-expert','project-manager','scheduler','interview-prep'],
+};
+
+let allSkills = [];
+let currentFilter = 'all';
+let selectedAgentId = null;
+let agentAssignedSkills = {}; // agentId -> Set of skill names
+
+// Skill category emoji map
+const SKILL_EMOJI = {
+  'notion':'📝','web-search':'🔍','data-analyst':'📊','code-reviewer':'🔎',
+  'pdf-reader':'📄','project-manager':'📋','writing-coach':'✍️','sql-analyst':'🗄️',
+  'vector-db':'🧮','prompt-engineer':'🤖','kubernetes':'⚙️','docker':'🐳',
+  'typescript-expert':'📘','python-expert':'🐍','golang-expert':'🔵','rust-expert':'🦀',
+  'react-expert':'⚛️','aws':'☁️','azure':'🔷','gcp':'🟡','terraform':'🏗️',
+  'github':'🐙','git-expert':'🌿','confluence':'🔗','jira':'🎯','slack-tools':'💬',
+  'ml-engineer':'🧠','llm-finetuning':'🎛️','security-audit':'🛡️',
+};
+
+async function loadSkills() {
+  try {
+    const data = await apiFetch('/api/skills');
+    allSkills = data.skills || [];
+    document.getElementById('skills-badge').textContent = `${allSkills.length} skills available`;
+    renderRecommended();
+    filterSkills();
+  } catch(e) {
+    document.getElementById('all-skills-grid').innerHTML =
+      `<div class="skill-card" style="grid-column:1/-1;text-align:center;padding:24px;color:var(--red)">
+        Failed to load skills: ${e.message}
+      </div>`;
+  }
+}
+
+function isSkillAssigned(skillName) {
+  if (!selectedAgentId) return false;
+  return (agentAssignedSkills[selectedAgentId] || new Set()).has(skillName);
+}
+
+function renderSkillCard(skill, delay = 0) {
+  const emoji = SKILL_EMOJI[skill.name] || '⚡';
+  const assigned = isSkillAssigned(skill.name);
+  const tags = (skill.tags || []).slice(0, 3);
+  return `
+  <div class="skill-card ${assigned ? 'assigned' : ''}" id="skill-card-${skill.name}" 
+       style="animation-delay:${delay}ms">
+    <div class="skill-name">
+      <span>${emoji}</span>
+      <span>${skill.name}</span>
+      ${assigned ? '<span style="color:var(--green);font-size:10px">✓ Assigned</span>' : ''}
+    </div>
+    <div class="skill-desc">${skill.description || 'Specialist skill'}</div>
+    <div class="skill-footer">
+      <div class="skill-tags">
+        ${tags.map(t => `<span class="skill-tag">${t}</span>`).join('')}
+      </div>
+      <button class="assign-btn ${assigned ? 'assigned' : ''}" 
+              onclick="toggleAssignSkill('${skill.name}')" 
+              id="assign-btn-${skill.name}">
+        ${assigned ? '✓ Assigned' : '+ Assign'}
+      </button>
+    </div>
+  </div>`;
+}
+
+function renderRecommended() {
+  const grid = document.getElementById('recommended-skills-grid');
+  const recommended = allSkills.filter(s => SATYUG_RECOMMENDED.includes(s.name));
+  grid.innerHTML = recommended.map((s, i) => renderSkillCard(s, i * 40)).join('');
+}
+
+function filterSkills() {
+  const query = (document.getElementById('skill-search')?.value || '').toLowerCase();
+  const filtered = allSkills.filter(s => {
+    const matchQuery = !query || s.name.includes(query) || (s.description||'').toLowerCase().includes(query);
+    if (!matchQuery) return false;
+    if (currentFilter === 'all') return true;
+    const tagSet = SKILL_TAG_MAP[currentFilter] || [];
+    return tagSet.includes(s.name) || (s.tags||[]).some(t => t.toLowerCase().includes(currentFilter));
+  });
+
+  const grid = document.getElementById('all-skills-grid');
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="skill-card" style="grid-column:1/-1;text-align:center;padding:24px;color:var(--dim)">
+      No skills match your search
+    </div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map((s, i) => renderSkillCard(s, i * 15)).join('');
+}
+
+function setFilter(tag, el) {
+  currentFilter = tag;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  filterSkills();
+}
+
+async function toggleAssignSkill(skillName) {
+  if (!selectedAgentId) {
+    showToast('Select an agent first to assign skills', 'error');
+    return;
+  }
+
+  const agentEntry = state.agents.find(a => a.id === selectedAgentId);
+  if (!agentEntry) return;
+
+  const currentSet = agentAssignedSkills[selectedAgentId] || new Set();
+  const isAssigned = currentSet.has(skillName);
+
+  // Build new skills list
+  if (isAssigned) {
+    currentSet.delete(skillName);
+  } else {
+    currentSet.add(skillName);
+  }
+  agentAssignedSkills[selectedAgentId] = currentSet;
+
+  const skillsList = Array.from(currentSet);
+
+  try {
+    // PATCH agent with updated skills list
+    const r = await fetch(`${API}/api/agents/${selectedAgentId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skills: skillsList }),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+    const action = isAssigned ? 'Removed' : 'Assigned';
+    showToast(`${action} "${skillName}" ${isAssigned ? 'from' : 'to'} ${agentEntry.name}`, 'success');
+    updateSkillCardUI(skillName);
+    updateCurrentSkillsChips();
+    updateAgentAssignedCount();
+    // Refresh recommended too
+    renderRecommended();
+    filterSkills();
+  } catch(e) {
+    // Revert on error
+    if (isAssigned) currentSet.add(skillName); else currentSet.delete(skillName);
+    agentAssignedSkills[selectedAgentId] = currentSet;
+    showToast(`Failed to update: ${e.message}`, 'error');
+  }
+}
+
+function updateSkillCardUI(skillName) {
+  const card = document.getElementById(`skill-card-${skillName}`);
+  const btn = document.getElementById(`assign-btn-${skillName}`);
+  if (!card || !btn) return;
+  const assigned = isSkillAssigned(skillName);
+  card.classList.toggle('assigned', assigned);
+  btn.className = `assign-btn ${assigned ? 'assigned' : ''}`;
+  btn.textContent = assigned ? '✓ Assigned' : '+ Assign';
+}
+
+function updateCurrentSkillsChips() {
+  const container = document.getElementById('current-skills-chips');
+  const list = document.getElementById('agent-skills-list');
+  const currentSet = agentAssignedSkills[selectedAgentId] || new Set();
+  
+  if (!container || !list) return;
+  if (!currentSet.size) {
+    list.style.display = 'none';
+    return;
+  }
+  list.style.display = '';
+  container.innerHTML = Array.from(currentSet).map(name => {
+    const emoji = SKILL_EMOJI[name] || '⚡';
+    return `<div style="display:flex;align-items:center;gap:4px;padding:4px 10px;
+      border-radius:99px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);
+      font-size:11px;font-weight:700;color:var(--green);cursor:pointer"
+      onclick="toggleAssignSkill('${name}')" title="Click to remove">
+      ${emoji} ${name} <span style="opacity:.6;margin-left:2px">×</span>
+    </div>`;
+  }).join('');
+}
+
+function updateAgentAssignedCount() {
+  const el = document.getElementById('agent-assigned-count');
+  if (!el || !selectedAgentId) return;
+  const count = (agentAssignedSkills[selectedAgentId] || new Set()).size;
+  el.textContent = count ? `${count} skill${count > 1 ? 's' : ''} assigned` : 'No skills assigned yet';
+}
+
+async function onAgentSelectChange() {
+  const sel = document.getElementById('assign-agent-select');
+  selectedAgentId = sel.value || null;
+  
+  if (!selectedAgentId) {
+    document.getElementById('agent-skills-list').style.display = 'none';
+    document.getElementById('agent-assigned-count').textContent = '';
+    filterSkills(); renderRecommended();
+    return;
+  }
+
+  // Fetch current agent skills from API
+  try {
+    const agent = await apiFetch(`/api/agents/${selectedAgentId}`);
+    const skills = agent.skills || [];
+    agentAssignedSkills[selectedAgentId] = new Set(skills);
+  } catch(e) {
+    agentAssignedSkills[selectedAgentId] = new Set();
+  }
+
+  updateCurrentSkillsChips();
+  updateAgentAssignedCount();
+  filterSkills();
+  renderRecommended();
+}
+
+// Extend loadAgents to also populate skills agent select
+const _origLoadAgents = loadAgents;
+async function loadAgents() {
+  await _origLoadAgents();
+  // Populate assign-agent dropdown
+  const sel = document.getElementById('assign-agent-select');
+  if (sel && state.agents.length) {
+    sel.innerHTML = '<option value="">— Choose Agent —</option>' +
+      state.agents.map(a => {
+        const meta = AGENT_META[a.name] || { emoji: '🤖' };
+        return `<option value="${a.id}">${meta.emoji} ${a.name}</option>`;
+      }).join('');
+  }
+}
+
+// Extend showSection for skills lazy load
+const _origShowSection = showSection;
+function showSection(name) {
+  ['matrix','chat','hp','services','activity','skills'].forEach(s => {
+    const el = document.getElementById('section-' + s);
+    if (el) el.style.display = s === name ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (event && event.currentTarget) event.currentTarget.classList.add('active');
+  if (name === 'services') checkServices();
+  if (name === 'skills' && allSkills.length === 0) loadSkills();
+}
+</script>
+
+</body>
+</html>
