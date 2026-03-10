@@ -418,6 +418,17 @@ async def _get_or_create_local_user(session: AsyncSession) -> User:
         clerk_user_id=LOCAL_AUTH_USER_ID,
         defaults=defaults,
     )
+    
+    # Handle the case where user might be a Row object instead of a User model
+    # The Row object may contain the User model as its first element
+    if hasattr(user, '__iter__') and hasattr(user, '_fields') and not isinstance(user, User):
+        # If it's a Row object that contains the User as its first element
+        # Get the first element of the row which should be the User model
+        try:
+            user = user[0]  # Get the first element from the Row
+        except (IndexError, TypeError):
+            pass  # If it's not a tuple-like Row, continue with original user
+    
     changed = False
     if not user.email:
         user.email = LOCAL_AUTH_EMAIL

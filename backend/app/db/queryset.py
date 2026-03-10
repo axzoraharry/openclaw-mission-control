@@ -60,7 +60,7 @@ class QuerySet(Generic[ModelT]):
 
     async def all(self, session: AsyncSession) -> list[ModelT]:
         """Execute and return all rows for the current queryset."""
-        return list(await session.exec(self.statement))
+        return list((await session.exec(self.statement)).all())
 
     async def first(self, session: AsyncSession) -> ModelT | None:
         """Execute and return the first row, if available."""

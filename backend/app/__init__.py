@@ -1,1 +1,1 @@
-"""OpenClaw Mission Control backend application package."""
+"""Axzora Mission Control backend application package."""

@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING
 
 from alembic.config import Config
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import Session, sessionmaker
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -32,15 +34,34 @@ def _normalize_database_url(database_url: str) -> str:
     return database_url
 
 
-async_engine: AsyncEngine = create_async_engine(
-    _normalize_database_url(settings.database_url),
-    pool_pre_ping=True,
-)
-async_session_maker = async_sessionmaker(
-    async_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+# Determine if we need async or sync engine
+is_async = "+aiosqlite" in settings.database_url or "+asyncpg" in settings.database_url
+
+if is_async:
+    async_engine: AsyncEngine = create_async_engine(
+        _normalize_database_url(settings.database_url),
+        pool_pre_ping=True,
+    )
+    async_session_maker = async_sessionmaker(
+        async_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    sync_engine = None
+    sync_session_maker = None
+else:
+    # Create sync engine for SQLite
+    sync_engine = create_engine(
+        _normalize_database_url(settings.database_url),
+        pool_pre_ping=True,
+    )
+    sync_session_maker = sessionmaker(
+        sync_engine,
+        class_=Session,
+        expire_on_commit=False,
+    )
+    async_engine = None
+    async_session_maker = None
 logger = get_logger(__name__)
 
 
@@ -71,23 +92,44 @@ async def init_db() -> None:
             return
         logger.warning("No migration revisions found; falling back to create_all")
 
-    async with async_engine.connect() as conn, conn.begin():
-        await conn.run_sync(SQLModel.metadata.create_all)
+    if is_async:
+        async with async_engine.connect() as conn, conn.begin():
+            await conn.run_sync(SQLModel.metadata.create_all)
+    else:
+        SQLModel.metadata.create_all(sync_engine)
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Yield a request-scoped async DB session with safe rollback on errors."""
-    async with async_session_maker() as session:
-        try:
-            yield session
-        finally:
-            in_txn = False
+if is_async:
+    async def get_session() -> AsyncGenerator[AsyncSession, None]:
+        """Yield a request-scoped async DB session with safe rollback on errors."""
+        async with async_session_maker() as session:
             try:
-                in_txn = bool(session.in_transaction())
-            except SQLAlchemyError:
-                logger.exception("Failed to inspect session transaction state.")
-            if in_txn:
+                yield session
+            finally:
+                in_txn = False
                 try:
-                    await session.rollback()
+                    in_txn = bool(session.in_transaction())
                 except SQLAlchemyError:
-                    logger.exception("Failed to rollback session after request error.")
+                    logger.exception("Failed to inspect session transaction state.")
+                if in_txn:
+                    try:
+                        await session.rollback()
+                    except SQLAlchemyError:
+                        logger.exception("Failed to rollback session after request error.")
+else:
+    def get_session():
+        """Yield a request-scoped sync DB session with safe rollback on errors."""
+        with sync_session_maker() as session:
+            try:
+                yield session
+            finally:
+                in_txn = False
+                try:
+                    in_txn = bool(session.in_transaction())
+                except SQLAlchemyError:
+                    logger.exception("Failed to inspect session transaction state.")
+                if in_txn:
+                    try:
+                        session.rollback()
+                    except SQLAlchemyError:
+                        logger.exception("Failed to rollback session after request error.")

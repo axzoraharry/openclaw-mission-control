@@ -119,7 +119,7 @@ async def get_board_or_404(
     session: AsyncSession = SESSION_DEP,
 ) -> Board:
     """Load a board by id or raise HTTP 404."""
-    board = await Board.objects.by_id(board_id).first(session)
+    board = await Board.objects.by_id(UUID(board_id)).first(session)
     if board is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return board
@@ -131,7 +131,7 @@ async def get_board_for_actor_read(
     actor: ActorContext = ACTOR_DEP,
 ) -> Board:
     """Load a board and enforce actor read access."""
-    board = await Board.objects.by_id(board_id).first(session)
+    board = await Board.objects.by_id(UUID(board_id)).first(session)
     if board is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     if actor.actor_type == "agent":
@@ -150,7 +150,7 @@ async def get_board_for_actor_write(
     actor: ActorContext = ACTOR_DEP,
 ) -> Board:
     """Load a board and enforce actor write access."""
-    board = await Board.objects.by_id(board_id).first(session)
+    board = await Board.objects.by_id(UUID(board_id)).first(session)
     if board is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     if actor.actor_type == "agent":
@@ -169,7 +169,7 @@ async def get_board_for_user_read(
     auth: AuthContext = AUTH_DEP,
 ) -> Board:
     """Load a board and enforce authenticated-user read access."""
-    board = await Board.objects.by_id(board_id).first(session)
+    board = await Board.objects.by_id(UUID(board_id)).first(session)
     if board is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     if auth.user is None:
@@ -184,7 +184,7 @@ async def get_board_for_user_write(
     auth: AuthContext = AUTH_DEP,
 ) -> Board:
     """Load a board and enforce authenticated-user write access."""
-    board = await Board.objects.by_id(board_id).first(session)
+    board = await Board.objects.by_id(UUID(board_id)).first(session)
     if board is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     if auth.user is None:

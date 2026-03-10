@@ -66,7 +66,8 @@ async def get_by_id(
 ) -> ModelT | None:
     """Fetch one model instance by id or return None."""
     stmt = _lookup_statement(model, {"id": obj_id}).limit(1)
-    return (await session.exec(stmt)).first()
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
 
 
 async def get(
@@ -76,7 +77,8 @@ async def get(
 ) -> ModelT:
     """Fetch exactly one model instance by lookup values."""
     stmt = _lookup_statement(model, lookup).limit(2)
-    items = (await session.exec(stmt)).all()
+    result = await session.execute(stmt)
+    items = result.scalars().all()
     if not items:
         message = f"{model.__name__} matching query does not exist."
         raise DoesNotExist(message)
@@ -93,7 +95,8 @@ async def get_one_by(
 ) -> ModelT | None:
     """Fetch the first model instance matching lookup values."""
     stmt = _lookup_statement(model, lookup)
-    return (await session.exec(stmt)).first()
+    result = await session.execute(stmt)
+    return result.scalars().first()
 
 
 async def create(
@@ -156,12 +159,14 @@ async def list_by(
         stmt = stmt.offset(offset)
     if limit is not None:
         stmt = stmt.limit(limit)
-    return list(await session.exec(stmt))
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
 
 
 async def exists(session: AsyncSession, model: type[ModelT], **lookup: object) -> bool:
     """Return whether any object exists for lookup values."""
-    return (await session.exec(_lookup_statement(model, lookup).limit(1))).first() is not None
+    result = await session.execute(_lookup_statement(model, lookup).limit(1))
+    return result.first() is not None
 
 
 def _criteria_statement(
@@ -185,7 +190,8 @@ async def list_where(
     stmt = _criteria_statement(model, criteria)
     for ordering in order_by:
         stmt = stmt.order_by(ordering)
-    return list(await session.exec(stmt))
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
 
 
 async def delete_where(
@@ -198,7 +204,7 @@ async def delete_where(
     stmt: Any = sql_delete(model)
     if criteria:
         stmt = stmt.where(*criteria)
-    result = await session.exec(stmt)
+    result = await session.execute(stmt)
     if commit:
         await _commit_or_rollback(session)
     rowcount = getattr(result, "rowcount", None)
@@ -236,7 +242,7 @@ async def update_where(
     stmt: Any = sql_update(model).values(**values)
     if criteria:
         stmt = stmt.where(*criteria)
-    result = await session.exec(stmt)
+    result = await session.execute(stmt)
     if commit:
         await _commit_or_rollback(session)
     rowcount = getattr(result, "rowcount", None)
@@ -293,7 +299,7 @@ async def get_or_create(
     """Get one object by lookup, or create it with defaults."""
     stmt = _lookup_statement(model, lookup)
 
-    existing = (await session.exec(stmt)).first()
+    existing = (await session.execute(stmt)).scalar_one_or_none()
     if existing is not None:
         return existing, False
 
@@ -311,7 +317,8 @@ async def get_or_create(
     except IntegrityError:
         # If another concurrent request inserted the same unique row, surface that row.
         await session.rollback()
-        existing = (await session.exec(stmt)).first()
+        result = await session.execute(stmt)
+        existing = result.scalar_one_or_none()
         if existing is not None:
             return existing, False
         raise
