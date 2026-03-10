@@ -1,0 +1,9 @@
+// strings.xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AXZORA</string>
+    <string name="welcome_message">Welcome to AXZORA Super App</string>
+    <string name="mr_happy_ai">Mr. Happy AI</string>
+    <string name="happy_paisa">Happy Paisa</string>
+    <string name="wallet_balance">Wallet Balance</string>
+</resources>
