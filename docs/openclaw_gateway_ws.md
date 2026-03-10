@@ -2,7 +2,7 @@
 
 ## Connection Types
 
-OpenClaw Mission Control supports both secure (`wss://`) and non-secure (`ws://`) WebSocket connections to gateways.
+Axzora Mission Control supports both secure (`wss://`) and non-secure (`ws://`) WebSocket connections to gateways.
 
 ### Secure Connections (wss://)
 

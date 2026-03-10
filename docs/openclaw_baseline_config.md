@@ -1,8 +1,8 @@
-# OpenClaw Baseline Configuration (Getting Started)
+# Axzora Baseline Configuration (Getting Started)
 
-This guide turns the provided baseline into a practical starting point for local OpenClaw setup and Mission Control integration.
+This guide turns the provided baseline into a practical starting point for local Axzora setup and Mission Control integration.
 
-For OpenClaw CLI installs, the default config path is:
+For Axzora CLI installs, the default config path is:
 
 - `~/.openclaw/openclaw.json`
 
