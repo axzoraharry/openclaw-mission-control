@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axzora AI Mission Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0a;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #001100 0%, #003300 100%);
+            padding: 20px;
+            border-bottom: 2px solid #00ff41;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            text-shadow: 0 0 20px #00ff41;
+            letter-spacing: 5px;
+        }
+        
+        .header p {
+            color: #00cc33;
+            margin-top: 10px;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .sidebar {
+            background: #111;
+            border: 1px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .sidebar h3 {
+            color: #00ff41;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #00ff41;
+            padding-bottom: 10px;
+        }
+        
+        .agent-card {
+            background: #0a1a0a;
+            border: 1px solid #003300;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .agent-card:hover {
+            border-color: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+        }
+        
+        .agent-card.online {
+            border-left: 3px solid #00ff41;
+        }
+        
+        .agent-card.offline {
+            border-left: 3px solid #ff0000;
+            opacity: 0.6;
+        }
+        
+        .agent-name {
+            font-weight: bold;
+            color: #00ff41;
+        }
+        
+        .agent-role {
+            font-size: 0.8em;
+            color: #00cc33;
+        }
+        
+        .main-panel {
+            background: #111;
+            border: 1px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background: #0a1a0a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            text-align: center;
+        }
+        
+        .status-value {
+            font-size: 2em;
+            color: #00ff41;
+            font-weight: bold;
+        }
+        
+        .status-label {
+            font-size: 0.8em;
+            color: #00cc33;
+        }
+        
+        .terminal {
+            background: #000;
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-size: 0.9em;
+        }
+        
+        .terminal-line {
+            margin-bottom: 5px;
+        }
+        
+        .terminal-line.system {
+            color: #00ccff;
+        }
+        
+        .terminal-line.user {
+            color: #ffff00;
+        }
+        
+        .terminal-line.ai {
+            color: #00ff41;
+        }
+        
+        .input-area {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .input-area input {
+            flex: 1;
+            background: #0a1a0a;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: inherit;
+        }
+        
+        .input-area input::placeholder {
+            color: #006600;
+        }
+        
+        .btn {
+            background: #003300;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #00ff41;
+            color: #000;
+        }
+        
+        .btn-connect {
+            background: #004400;
+        }
+        
+        .right-panel {
+            background: #111;
+            border: 1px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .log-panel {
+            background: #000;
+            border: 1px solid #003300;
+            border-radius: 5px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 0.8em;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px;
+            border-left: 2px solid transparent;
+        }
+        
+        .log-entry.info {
+            border-left-color: #00ccff;
+            color: #00ccff;
+        }
+        
+        .log-entry.success {
+            border-left-color: #00ff41;
+            color: #00ff41;
+        }
+        
+        .log-entry.warning {
+            border-left-color: #ffaa00;
+            color: #ffaa00;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .blink {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ AXZORA AI MISSION CONTROL ⚡</h1>
+        <p>Mr Happy AI System | OpenClaw Gateway | Multi-Agent Swarm</p>
+    </div>
+    
+    <div class="container">
+        <!-- Left Sidebar - Agents -->
+        <div class="sidebar">
+            <h3>🤖 AGENT SWARM</h3>
+            
+            <div class="agent-card online" onclick="selectAgent('mr_happy')">
+                <div class="agent-name">Mr Happy Prime</div>
+                <div class="agent-role">CEO / Orchestrator</div>
+            </div>
+            
+            <div class="agent-card online" onclick="selectAgent('coder')">
+                <div class="agent-name">Code Agent</div>
+                <div class="agent-role">Developer</div>
+            </div>
+            
+            <div class="agent-card online" onclick="selectAgent('research')">
+                <div class="agent-name">Research Agent</div>
+                <div class="agent-role">Analyst</div>
+            </div>
+            
+            <div class="agent-card online" onclick="selectAgent('auto')">
+                <div class="agent-name">Auto Agent</div>
+                <div class="agent-role">Executor</div>
+            </div>
+            
+            <div class="agent-card online" onclick="selectAgent('guard')">
+                <div class="agent-name">Guard Agent</div>
+                <div class="agent-role">Security</div>
+            </div>
+            
+            <button class="btn btn-connect" onclick="connectGateway()" style="width: 100%; margin-top: 20px;">
+                🔌 Connect Gateway
+            </button>
+        </div>
+        
+        <!-- Main Panel -->
+        <div class="main-panel">
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-value" id="agent-count">5</div>
+                    <div class="status-label">Active Agents</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value" id="task-count">0</div>
+                    <div class="status-label">Tasks Queued</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value pulse" id="gateway-status">●</div>
+                    <div class="status-label">Gateway</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value" id="llm-status">🧠</div>
+                    <div class="status-label">LLM Ready</div>
+                </div>
+            </div>
+            
+            <div class="terminal" id="terminal">
+                <div class="terminal-line system">[SYSTEM] Axzora AI Mission Control initialized</div>
+                <div class="terminal-line system">[SYSTEM] Waiting for gateway connection...</div>
+                <div class="terminal-line system">[SYSTEM] Type 'help' for available commands</div>
+            </div>
+            
+            <div class="input-area">
+                <input type="text" id="command-input" placeholder="Enter command or ask Mr Happy..." onkeypress="handleKeyPress(event)">
+                <button class="btn" onclick="sendCommand()">Send</button>
+            </div>
+        </div>
+        
+        <!-- Right Panel - Logs -->
+        <div class="right-panel">
+            <h3>📊 SYSTEM LOGS</h3>
+            <div class="log-panel" id="log-panel">
+                <div class="log-entry info">[10:00:01] System initialized</div>
+                <div class="log-entry info">[10:00:02] Loading agent configurations...</div>
+                <div class="log-entry success">[10:00:03] 5 agents loaded successfully</div>
+                <div class="log-entry info">[10:00:04] Ready for commands</div>
+            </div>
+            
+            <h3 style="margin-top: 20px;">🎯 QUICK ACTIONS</h3>
+            <button class="btn" onclick="quickAction('sync')" style="width: 100%; margin-bottom: 10px;">
+                📱 Sync Device
+            </button>
+            <button class="btn" onclick="quickAction('search')" style="width: 100%; margin-bottom: 10px;">
+                🔍 Web Search
+            </button>
+            <button class="btn" onclick="quickAction('code')" style="width: 100%; margin-bottom: 10px;">
+                💻 Generate Code
+            </button>
+            <button class="btn" onclick="quickAction('status')" style="width: 100%;">
+                📊 System Status
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let connected = false;
+        
+        function connectGateway() {
+            const terminal = document.getElementById('terminal');
+            
+            try {
+                ws = new WebSocket('ws://localhost:18789');
+                
+                ws.onopen = function() {
+                    connected = true;
+                    document.getElementById('gateway-status').textContent = '✓';
+                    document.getElementById('gateway-status').classList.remove('pulse');
+                    addTerminalLine('system', '[GATEWAY] Connected to Axzora Gateway');
+                    addLog('success', 'Gateway connection established');
+                    
+                    ws.send(JSON.stringify({
+                        type: 'register',
+                        client: 'mission-control-dashboard'
+                    }));
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    addTerminalLine('ai', `[MR HAPPY] ${data.response || data.message}`);
+                };
+                
+                ws.onerror = function(error) {
+                    addTerminalLine('system', '[ERROR] Gateway connection failed');
+                    addLog('warning', 'Gateway connection error');
+                };
+                
+                ws.onclose = function() {
+                    connected = false;
+                    document.getElementById('gateway-status').textContent = '●';
+                    document.getElementById('gateway-status').classList.add('pulse');
+                    addTerminalLine('system', '[GATEWAY] Disconnected');
+                };
+                
+            } catch (e) {
+                addTerminalLine('system', '[ERROR] Failed to connect: ' + e.message);
+            }
+        }
+        
+        function sendCommand() {
+            const input = document.getElementById('command-input');
+            const command = input.value.trim();
+            
+            if (!command) return;
+            
+            addTerminalLine('user', `[YOU] ${command}`);
+            input.value = '';
+            
+            // Process command
+            if (command.toLowerCase() === 'help') {
+                showHelp();
+            } else if (command.toLowerCase() === 'clear') {
+                document.getElementById('terminal').innerHTML = '';
+            } else if (connected && ws) {
+                ws.send(JSON.stringify({
+                    type: 'command',
+                    command: command
+                }));
+            } else {
+                // Simulate response
+                setTimeout(() => {
+                    addTerminalLine('ai', `[MR HAPPY] I received: "${command}". I'm processing your request...`);
+                }, 500);
+            }
+            
+            addLog('info', `Command executed: ${command}`);
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendCommand();
+            }
+        }
+        
+        function addTerminalLine(type, text) {
+            const terminal = document.getElementById('terminal');
+            const line = document.createElement('div');
+            line.className = `terminal-line ${type}`;
+            line.textContent = text;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        function addLog(type, message) {
+            const logPanel = document.getElementById('log-panel');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            logPanel.appendChild(entry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+        
+        function selectAgent(agent) {
+            addTerminalLine('system', `[SYSTEM] Selected agent: ${agent}`);
+            addLog('info', `Agent selected: ${agent}`);
+        }
+        
+        function quickAction(action) {
+            const actions = {
+                'sync': '📱 Initiating device sync...',
+                'search': '🔍 Opening search interface...',
+                'code': '💻 Launching code generator...',
+                'status': '📊 Collecting system status...'
+            };
+            
+            addTerminalLine('system', `[ACTION] ${actions[action]}`);
+            addLog('info', `Quick action: ${action}`);
+        }
+        
+        function showHelp() {
+            const helpText = `
+[MR HAPPY] Available commands:
+  help     - Show this help
+  clear    - Clear terminal
+  status   - System status
+  agents   - List all agents
+  sync     - Sync device
+  search   - Web search
+  code     - Generate code
+  exit     - Disconnect
+
+You can also ask me anything directly!
+            `;
+            addTerminalLine('ai', helpText);
+        }
+        
+        // Auto-connect on load
+        window.onload = function() {
+            setTimeout(connectGateway, 1000);
+        };
+    </script>
+</body>
+</html>
