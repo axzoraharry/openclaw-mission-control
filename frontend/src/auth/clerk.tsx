@@ -3,7 +3,7 @@
 // NOTE: We intentionally keep this file very small and dependency-free.
 // It provides CI/secretless-build safe fallbacks for Clerk hooks/components.
 
-import type { ReactNode, ComponentProps } from "react";
+import { useState, useEffect, type ReactNode, type ComponentProps } from "react";
 
 import {
   ClerkProvider,
@@ -17,6 +17,14 @@ import {
 
 import { isLikelyValidClerkPublishableKey } from "@/auth/clerkKey";
 import { getLocalAuthToken, isLocalAuthMode } from "@/auth/localAuth";
+
+function useHasMounted() {
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  return hasMounted;
+}
 
 function hasLocalAuthToken(): boolean {
   return Boolean(getLocalAuthToken());
@@ -32,7 +40,11 @@ export function isClerkEnabled(): boolean {
 }
 
 export function SignedIn(props: { children: ReactNode }) {
+  const hasMounted = useHasMounted();
+  
   if (isLocalAuthMode()) {
+    // During SSR, render nothing; after mount, check token
+    if (!hasMounted) return null;
     return hasLocalAuthToken() ? <>{props.children}</> : null;
   }
   if (!isClerkEnabled()) return null;
@@ -40,7 +52,11 @@ export function SignedIn(props: { children: ReactNode }) {
 }
 
 export function SignedOut(props: { children: ReactNode }) {
+  const hasMounted = useHasMounted();
+  
   if (isLocalAuthMode()) {
+    // During SSR, render children (signed out state); after mount, check token
+    if (!hasMounted) return <>{props.children}</>;
     return hasLocalAuthToken() ? null : <>{props.children}</>;
   }
   if (!isClerkEnabled()) return <>{props.children}</>;

@@ -1,7 +1,7 @@
 "use client";
 
 import { ClerkProvider } from "@clerk/nextjs";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { isLikelyValidClerkPublishableKey } from "@/auth/clerkKey";
 import {
@@ -13,6 +13,14 @@ import { LocalAuthLogin } from "@/components/organisms/LocalAuthLogin";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const localMode = isLocalAuthMode();
+  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+  const [hasMounted, setHasMounted] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+    setHasToken(Boolean(getLocalAuthToken()));
+  }, []);
 
   useEffect(() => {
     if (!localMode) {
@@ -21,8 +29,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [localMode]);
 
   if (localMode) {
-    if (!getLocalAuthToken()) {
-      return <LocalAuthLogin />;
+    // During SSR, render a minimal placeholder to avoid hydration mismatch
+    if (!hasMounted) {
+      return <div className="min-h-screen bg-app" />;
+    }
+    // Demo mode - bypass login screen
+    if (isDemoMode) {
+      // Add a small demo indicator
+      return (
+        <>
+          <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-100 border-b border-yellow-300 px-4 py-2 text-center text-sm text-yellow-800">
+           🎯 Demo Mode Active - Using default token
+          </div>
+          <div className="pt-10">
+            {children}
+          </div>
+        </>
+      );
+    }
+    if (!hasToken) {
+      return <LocalAuthLogin onAuthenticated={() => setHasToken(true)} />;
     }
     return <>{children}</>;
   }

@@ -22,6 +22,14 @@ export function setLocalAuthToken(token: string): void {
 export function getLocalAuthToken(): string | null {
   if (localToken) return localToken;
   if (typeof window === "undefined") return null;
+  
+  // Demo mode - automatically provide valid token
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+    const demoToken = process.env.LOCAL_AUTH_TOKEN || "openclaw_local_dev_token_very_secure_key_for_mission_control_2026";
+    setLocalAuthToken(demoToken);
+    return demoToken;
+  }
+  
   try {
     const stored = window.sessionStorage.getItem(STORAGE_KEY);
     if (stored) {
