@@ -25,6 +25,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/{{PROJECT_NAME}}_db
       AUTH_MODE: {{AUTH_PROVIDER}}
       LOCAL_AUTH_TOKEN: local_dev_token_for_{{PROJECT_NAME}}_must_be_50_chars_long
+      OLLAMA_URL: http://ollama:11434
     depends_on:
       db:
         condition: service_healthy
@@ -39,10 +40,54 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
       NEXT_PUBLIC_AUTH_MODE: {{AUTH_PROVIDER}}
+      NEXT_PUBLIC_VOICE_WS: ws://localhost:8765
     volumes:
       - ./frontend:/app
       - /app/node_modules
     command: npm run dev
 
+  # AI Services
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: ollama serve
+
+  mr-happy-agent:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile.agent
+    ports:
+      - "8001:8001"
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      BACKEND_URL: http://backend:8000
+      MODEL: llama3.2:3b
+    depends_on:
+      - ollama
+      - backend
+
+  voice-server:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile.voice
+    ports:
+      - "8765:8765"
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      MODEL: llama3.2:3b
+    depends_on:
+      - ollama
+
 volumes:
   postgres_data:
+  ollama_data:

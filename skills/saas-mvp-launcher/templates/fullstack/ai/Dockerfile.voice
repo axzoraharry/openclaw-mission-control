@@ -1,0 +1,31 @@
+# Mr Happy Voice Server
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies for audio
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    espeak-ng \
+    libespeak-ng1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    fastapi \
+    uvicorn \
+    httpx \
+    websockets \
+    requests \
+    pydantic \
+    pyttsx3 \
+    SpeechRecognition \
+    openai-whisper
+
+# Copy voice service code
+COPY voice_service.py /app/
+
+# Expose WebSocket port
+EXPOSE 8765
+
+# Run the voice server
+CMD ["python", "voice_service.py", "--ws"]
