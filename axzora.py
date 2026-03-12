@@ -196,6 +196,35 @@ class AxzoraCLI:
         else:
             print(f"\n❌ Unknown agent: {agent}")
             print(f"Available: {', '.join(agents.keys())}")
+    
+    def gateway(self, action: str = "start"):
+        """Manage Axzora Super-Aggregator API Gateway."""
+        if action == "start":
+            print("\n🌐 Starting Axzora API Gateway...\n")
+            print("  Travel: Amadeus, Duffel, Skyscanner")
+            print("  Marketplace: RapidAPI, Commerce Layer")
+            print("  Food: Zomato, Swiggy")
+            print("  Events: Eventbrite, Ticketmaster")
+            print("  Loyalty: Happy Paisa\n")
+            subprocess.run(["python", "axzora-ai/gateway/api_gateway.py"])
+        elif action == "status":
+            import httpx
+            try:
+                r = httpx.get("http://localhost:8080/health")
+                print(f"\n✅ Gateway running: {r.json()}")
+            except:
+                print("\n❌ Gateway not running. Start with: python axzora.py gateway start")
+    
+    def trip(self, query: str = None):
+        """Launch Mr Happy Trip Planner."""
+        print("\n🧳 MR HAPPY TRIP PLANNER\n")
+        print("Plan complete trips with flights, hotels, events, restaurants!")
+        print("Earn Happy Paisa rewards on every booking.\n")
+        
+        if query:
+            subprocess.run(["python", "axzora-ai/mr-happy/trip_planner.py", "--query", query])
+        else:
+            subprocess.run(["python", "axzora-ai/mr-happy/trip_planner.py"])
 
 
 def main():
@@ -254,6 +283,16 @@ def main():
                            choices=["mr-happy", "autonomous", "wake"],
                            help="Agent to launch")
     
+    # Gateway command
+    gateway_parser = subparsers.add_parser("gateway", help="Manage Axzora API Gateway (50+ providers)")
+    gateway_parser.add_argument("action", nargs="?", default="start",
+                                choices=["start", "status"],
+                                help="Gateway action")
+    
+    # Trip command
+    trip_parser = subparsers.add_parser("trip", help="Launch Mr Happy Trip Planner")
+    trip_parser.add_argument("query", nargs="?", help="Trip request (e.g., 'Goa trip under 25k')")
+    
     args = parser.parse_args()
     
     if not args.command:
@@ -284,6 +323,10 @@ def main():
         cli.voice(args.mode)
     elif args.command == "ai":
         cli.ai(args.agent)
+    elif args.command == "gateway":
+        cli.gateway(args.action)
+    elif args.command == "trip":
+        cli.trip(getattr(args, 'query', None))
 
 
 if __name__ == "__main__":
