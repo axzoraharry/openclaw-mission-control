@@ -37,3 +37,9 @@
 ## Security & Configuration Tips
 - Never commit secrets. Copy from `.env.example` and keep real values in local `.env`.
 - Report vulnerabilities privately via GitHub security advisories, not public issues.
+
+## Cursor Cloud specific instructions
+- Cloud Agents use `.cursor/environment.json`: `install` runs `scripts/cloud-agent-install.sh`, `start` runs `scripts/cloud-agent-start.sh` (Postgres + Redis + Alembic), and named terminals start the backend and frontend dev servers.
+- Local auth uses `AUTH_MODE=local` with a 50+ character `LOCAL_AUTH_TOKEN` in `.env` (generated on first install if missing).
+- For the FastAPI async DB layer with native Postgres, run the API with `DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/mission_control` (`asyncpg` is installed by the cloud install script). Use `postgresql+psycopg://…` only for Alembic migrations (`make backend-migrate` / `cloud-agent-start.sh`).
+- Docker Compose is optional in Cloud Agents; the default path is system Postgres/Redis. `docker compose up -d db redis` may fail on nested overlay storage—prefer the `start` script instead.
