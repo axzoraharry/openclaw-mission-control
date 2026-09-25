@@ -16,7 +16,8 @@ fi
 export AUTH_MODE="${AUTH_MODE:-local}"
 export LOCAL_AUTH_TOKEN="${LOCAL_AUTH_TOKEN:-openclaw_local_dev_token_very_secure_key_for_mission_control_2026}"
 export DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/mission_control"
-export DB_AUTO_MIGRATE="${DB_AUTO_MIGRATE:-false}"
+# Migrations run in cloud-agent-start.sh; auto-migrate on API boot breaks with asyncpg URLs.
+export DB_AUTO_MIGRATE=false
 export CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000}"
 export RQ_REDIS_URL="${RQ_REDIS_URL:-redis://localhost:6379/0}"
 
